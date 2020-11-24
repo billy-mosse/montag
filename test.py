@@ -145,7 +145,10 @@ def print_info(ret):
     print('-'*30)
 
 
-finder = Finder('GoogleNews-vectors-negative300.bin', True)
+
+
+
+'''finder = Finder('GoogleNews-vectors-negative300.bin', True)
 
 from tika import parser
 
@@ -164,5 +167,4 @@ print_info(ret)
 
 ret = (finder.find('drink poison', harry_potter_6))
 print_info(ret)
-st()
-
+st()'''
