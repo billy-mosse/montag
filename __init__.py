@@ -1,5 +1,5 @@
-from . import finder
+from .montag import Finder
 
 __all__ = [
-    'finder'
+    'montag'
 ]
