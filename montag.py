@@ -1,35 +1,42 @@
+"""
+montag.py
+====================================
+The core module of the montag project
+"""
+
+
 from pdb import set_trace as st
 from gensim.models import KeyedVectors
 import numpy as np
 import re
 import numpy as np
-
-
-def string_found(string1, string2):
-   s = re.search(r"\b" + re.escape(string1) + r"\b", string2)
-   if s:
-       return s.start()
-   return False
-
 import math
-def sigmoid_punishment(x):
-  return 2 / (1 + math.exp(-x*5))
 
 
-def print_info(ret):
-    keys = ret[1].keys()
-    for key in sorted(keys):
-        print(key)
-        print(ret[1][key])
-        print('=' * 20)
-    print('-'*30)
     
 class Finder:
-    def __init__(self, model_path, binary = True):
+    """Class for finding phrases that contains concepts semantically close to the ones queried
+    :param model_path: path of the gensim model to use. Model is loaded with the KeyedVectors.load_word2vec_format method
+    :param binary, defaults to `True`. Specifies whether the gensim model used is in binary format
+    """
+    def __init__(self, model_path, binary = True, dummy=False):
+        """Constructor method
+        """
         self.model = KeyedVectors.load_word2vec_format(model_path, binary = binary)
 
-    def __find_whole_word(self, substring, phrase):
-        s = re.search(r"\b" + re.escape(substring) + r"\b", phrase)
+    def __find_whole_word(self, word, phrase):
+        """Checks whether phrase contains word as a whole word
+        """
+        s = re.search(r"\b" + re.escape(word) + r"\b", phrase)
+        if s:
+            return s.start()
+        return False
+
+    def __sigmoid_punishment(x):
+        return 2 / (1 + math.exp(-x*5))
+
+    def __string_found(string1, string2):
+        s = re.search(r"\b" + re.escape(string1) + r"\b", string2)
         if s:
             return s.start()
         return False
@@ -76,6 +83,17 @@ class Finder:
             words_expanded.append(words_bag)
         return words_expanded
 
+    def __get_score(indices, phrase):
+        #if indices found are too far away then score should be punished!
+        indices = [index / len(phrase) for index in indices]
+
+        #I divide by a number between 1 y len(words_matched)
+        var = np.var(indices)
+        if var > 0:
+            #st()
+            score /= __sigmoid_punishment(var)
+        return score
+
     def __get_best_match(self, sentences, words_expanded):
         max_score = 0.0
         max_score_line = None
@@ -105,30 +123,16 @@ class Finder:
                         indices.append(s)
                         score += round(np.linalg.norm(self.model[word]), 2)
                         words_matched.append(word)
-
-
                         phrase = phrase.replace(word, '*%s*' % word)
-                        # print('possible line: ', line)
-                        # print('word', word)
-                        # print('')
                         break
 
-            #if indices found are too far away then score should be punished
-
-            indices = [index / len(phrase) for index in indices]
-
-            #deberia dividir el score por un numero entre 1 y len(words_matched)
-            var = np.var(indices)
-            if var > 0:
-                #st()
-                score /= sigmoid_punishment(var)
+            score = __get_score(indices, phrase)
 
             if score > max_score:
                 if score in matches:
                     matches[score].append(phrase)
                 else:
                     matches[score] = [phrase]
-
 
             if score > max_score:
                 max_score = score
@@ -138,6 +142,9 @@ class Finder:
 
 
     def find(self, query, sentences, debug=False):
+        '''
+        a function
+        '''
         words_expanded = self.__build(query)
         max_score_phrase = self.__get_best_match(sentences, words_expanded)
         return max_score_phrase
